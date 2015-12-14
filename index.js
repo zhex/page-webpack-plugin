@@ -95,8 +95,8 @@ PagePlugin.prototype.compilePage = function(page, outputFilename, compilation) {
 		new NodeTargetPlugin(),
 		new LibraryTemplatePlugin('PAGE_WEBPACK_PLUGIN_RESULT', 'var'),
 		new SingleEntryPlugin(this.context, page),
-		new LoaderTargetPlugin('node'),
-		new webpack.DefinePlugin({ PAGE_WEBPACK_PLUGIN: 'true' })
+		new LoaderTargetPlugin('node')
+		// new webpack.DefinePlugin({ PAGE_WEBPACK_PLUGIN: 'true' })
 	);
 
     childCompiler.plugin('compilation', function (compilation) {
