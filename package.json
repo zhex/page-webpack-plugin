@@ -1,7 +1,7 @@
 {
   "name": "asset-replace-webpack-plugin",
   "version": "0.1.0",
-  "description": "replace assets with compiled path",
+  "description": "replace assets in webpages with compiled path",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -16,6 +16,7 @@
   "dependencies": {
     "bluebird": "^3.0.6",
     "glob": "^6.0.1",
+    "syntax-error": "^1.1.4",
     "webpack": "^1.12.9"
   }
 }

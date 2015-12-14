@@ -20,43 +20,65 @@ function PagePlugin(opts) {
     this.opts = opts;
 }
 
+/**
+ * plugin hook method
+ * @param  {Compiler} compiler
+ */
 PagePlugin.prototype.apply = function(compiler) {
 	var self = this;
 	this.result = [];
     this.context = compiler.context;
 
     compiler.plugin('make', function(compilation, callback) {
-        var files = glob.sync(this.opts.files, { cwd: this.opts.cwd });
+        var files = glob.sync(self.opts.files, { cwd: self.opts.cwd });
 
         files = files.map(function(file) {
-            var filePath = path.join(this.opts.cwd, file);
-        	return this.compilePage(filePath, file, compilation);
-        }.bind(this));
+            var filePath = path.join(self.opts.cwd, file);
+        	return self.compilePage(filePath, file, compilation);
+        });
 
         Promise.all(files)
         	.then(function (result) { self.result = result })
         	.catch(function (err) { return new Error(err) } )
         	.finally(callback);
-    }.bind(this));
+    });
 
     compiler.plugin('emit', function(compilation, callback) {
     	var assets = self.getAssets(compilation);
 
-    	self.result.forEach(function (item) {
-    		var html = self.execPage(compilation, item.asset);
-    		html = self.replacePageAssets(html, assets);
-			compilation.assets[item.filename] = self.buildPageAsset(html);
+    	var promises = self.result.map(function (item) {
+    		return self.execPage(compilation, item);
     	});
 
-    	callback();
+    	Promise.all(promises)
+    		.then(function (contents) {
+    			contents.forEach(function (html) {
+    				html = self.replacePageAssets(html, assets);
+					compilation.assets[item.filename] = self.buildPageAsset(html);
+    			});
+    		})
+    		.catch(function (err) { return new Error(err) } )
+        	.finally(callback);
     });
 };
 
+/**
+ * get comipler name for page asset
+ * @param  {string} filePath
+ * @return {string}
+ */
 PagePlugin.prototype.getCompilerName = function(filePath) {
     var relativePath = path.relative(this.context, filePath);
     return 'page-webpack-plugin for "' + (filePath.length < relativePath.length ? filePath : relativePath) + '"';
 };
 
+/**
+ * compile page
+ * @param  {string} page
+ * @param  {string} outputFilename
+ * @param  {Compilation} compilation
+ * @return {Promise}
+ */
 PagePlugin.prototype.compilePage = function(page, outputFilename, compilation) {
     var outputOptions = {
         filename: outputFilename,
@@ -102,34 +124,44 @@ PagePlugin.prototype.compilePage = function(page, outputFilename, compilation) {
 	});
 };
 
+/**
+ * execute page asset
+ * @param  {Comilaition} compilation
+ * @param  {object} compilationResult
+ * @return {Promise Object}
+ */
 PagePlugin.prototype.execPage = function (compilation, compilationResult) {
-	if(!compilationResult) {
+	if(!compilationResult)
 		return Promise.reject('The child compilation didn\'t provide a result');
-	}
 
 	var newSource;
-	var source = compilationResult.source();
+	var source = compilationResult.asset.source();
 	source = source.replace('var PAGE_WEBPACK_PLUGIN_RESULT =', '');
 
 	try {
 		newSource = vm.runInThisContext(source);
 	} catch (e) {
 		var syntaxError = require('syntax-error')(source);
-		var errorMessage = 'Template compilation failed: ' + e +
-		(syntaxError ? '\n' + syntaxError + '\n\n\n' + source.split('\n').map(function(row, i) {
-			return (1 + i) + '  - ' + row;
-		}).join('\n') : '');
+		var errorMessage = 'Page compilation failed: ' + e +
+			(syntaxError ? '\n' + syntaxError + '\n\n\n' + source.split('\n').map(function(row, i) {
+				return (1 + i) + '  - ' + row;
+			}).join('\n') : '');
+
 		compilation.errors.push(new Error(errorMessage));
+
 		return Promise.reject(e);
 	}
 
 	return (typeof newSource === 'string' || typeof newSource === 'function')
-		? newSource : 'error';
-		// ? Promise.resolve(newSource)
-		// : Promise.reject('error');
-		// : Promise.reject('The loader "' + this.opts.template + '" didn\'t return html.');
+		? Promise.resolve(newSource)
+		: Promise.reject('The loader "' + compilationResult.filename + '" didn\'t return html.');
 };
 
+/**
+ * build html content as a webpack asset
+ * @param  {string} html
+ * @return {object}
+ */
 PagePlugin.prototype.buildPageAsset = function (html) {
 	return {
 		source: function () {
@@ -141,6 +173,11 @@ PagePlugin.prototype.buildPageAsset = function (html) {
 	};
 };
 
+/**
+ * get assets from current compilation
+ * @param  {Compilation} compilation
+ * @return {ojbect}
+ */
 PagePlugin.prototype.getAssets = function (compilation) {
 	var assets = {};
 	var stats = compilation.getStats().toJson();
@@ -160,6 +197,12 @@ PagePlugin.prototype.getAssets = function (compilation) {
 	return assets;
 };
 
+/**
+ * replace current links and scripts in the html content
+ * @param  {string} html
+ * @param  {object} assets
+ * @return {string}
+ */
 PagePlugin.prototype.replacePageAssets = function (html, assets) {
 	var tagRegx = /<(link|script).*?(?:>|\/>)/gi;
 	var urlRegx = /(src|href)=[\'\"]?([^\'\"]*)[\'\"]?/i;
