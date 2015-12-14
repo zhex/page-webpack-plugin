@@ -1,5 +1,5 @@
 {
-  "name": "asset-replace-webpack-plugin",
+  "name": "page-webpack-plugin",
   "version": "0.1.0",
   "description": "replace assets in webpages with compiled asset path",
   "main": "index.js",
