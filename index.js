@@ -11,14 +11,19 @@ var LoaderTargetPlugin = require('webpack/lib/LoaderTargetPlugin');
 var LibraryTemplatePlugin = require('webpack/lib/LibraryTemplatePlugin');
 var SingleEntryPlugin = require('webpack/lib/SingleEntryPlugin');
 
+/**
+ * @class PagePlugin
+ * replace links in webpages
+ * @param {Object} opts
+ */
 function PagePlugin(opts) {
     this.opts = opts;
 }
 
 PagePlugin.prototype.apply = function(compiler) {
 	var self = this;
+	this.result = [];
     this.context = compiler.context;
-    this.resultArray;
 
     compiler.plugin('make', function(compilation, callback) {
         var files = glob.sync(this.opts.files, { cwd: this.opts.cwd });
@@ -29,15 +34,22 @@ PagePlugin.prototype.apply = function(compiler) {
         }.bind(this));
 
         Promise.all(files)
-        	.then(function (result) {
-        		result.forEach(function (item) {
-					var html = self.execPage(compilation, item.asset);
-					compilation.assets[item.filename] = self.buildAsset(html);
-				})
-        	})
+        	.then(function (result) { self.result = result })
         	.catch(function (err) { return new Error(err) } )
         	.finally(callback);
     }.bind(this));
+
+    compiler.plugin('emit', function(compilation, callback) {
+    	var assets = self.getAssets(compilation);
+
+    	self.result.forEach(function (item) {
+    		var html = self.execPage(compilation, item.asset);
+    		html = self.replacePageAssets(html, assets);
+			compilation.assets[item.filename] = self.buildPageAsset(html);
+    	});
+
+    	callback();
+    });
 };
 
 PagePlugin.prototype.getCompilerName = function(filePath) {
@@ -57,10 +69,10 @@ PagePlugin.prototype.compilePage = function(page, outputFilename, compilation) {
 	childCompiler.apply(
 		new NodeTemplatePlugin(outputOptions),
 		new NodeTargetPlugin(),
-		new LibraryTemplatePlugin('HTML_WEBPACK_PLUGIN_RESULT', 'var'),
+		new LibraryTemplatePlugin('PAGE_WEBPACK_PLUGIN_RESULT', 'var'),
 		new SingleEntryPlugin(this.context, page),
 		new LoaderTargetPlugin('node'),
-		new webpack.DefinePlugin({ HTML_WEBPACK_PLUGIN: 'true'})
+		new webpack.DefinePlugin({ PAGE_WEBPACK_PLUGIN: 'true' })
 	);
 
     childCompiler.plugin('compilation', function (compilation) {
@@ -97,7 +109,7 @@ PagePlugin.prototype.execPage = function (compilation, compilationResult) {
 
 	var newSource;
 	var source = compilationResult.source();
-	source = source.replace('var HTML_WEBPACK_PLUGIN_RESULT =', '');
+	source = source.replace('var PAGE_WEBPACK_PLUGIN_RESULT =', '');
 
 	try {
 		newSource = vm.runInThisContext(source);
@@ -118,7 +130,7 @@ PagePlugin.prototype.execPage = function (compilation, compilationResult) {
 		// : Promise.reject('The loader "' + this.opts.template + '" didn\'t return html.');
 };
 
-PagePlugin.prototype.buildAsset = function (html) {
+PagePlugin.prototype.buildPageAsset = function (html) {
 	return {
 		source: function () {
 			return html;
@@ -129,5 +141,37 @@ PagePlugin.prototype.buildAsset = function (html) {
 	};
 };
 
+PagePlugin.prototype.getAssets = function (compilation) {
+	var assets = {};
+	var stats = compilation.getStats().toJson();
+	var assetsByChunkName = stats.assetsByChunkName;
+	var publicPath = compilation.outputOptions.publicPath;
+
+	Object.keys(assetsByChunkName).forEach(function (key) {
+		var chunks = assetsByChunkName[key];
+
+		if (!Array.isArray(chunks)) chunks = [chunks];
+
+		chunks.forEach(function (chunk) {
+			assets[key + path.extname(chunk)] = publicPath ? (publicPath + chunk) : publicPath;
+		});
+	});
+
+	return assets;
+};
+
+PagePlugin.prototype.replacePageAssets = function (html, assets) {
+	var tagRegx = /<(link|script).*?(?:>|\/>)/gi;
+	var urlRegx = /(src|href)=[\'\"]?([^\'\"]*)[\'\"]?/i;
+
+	return html.replace(tagRegx, function (tag) {
+		var url = tag.match(urlRegx);
+
+		if (url[2])
+			tag = tag.replace(url[2], assets[url[2]]);
+
+		return tag;
+	});
+};
 
 module.exports = PagePlugin;
