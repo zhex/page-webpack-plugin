@@ -52,9 +52,9 @@ PagePlugin.prototype.apply = function(compiler) {
 
     	Promise.all(promises)
     		.then(function (contents) {
-    			contents.forEach(function (html) {
-    				html = self.replacePageAssets(html, assets);
-					compilation.assets[item.filename] = self.buildPageAsset(html);
+    			contents.forEach(function (content, idx) {
+    				html = self.replacePageAssets(content.html, assets);
+					compilation.assets[content.filename] = self.buildPageAsset(html);
     			});
     		})
     		.catch(function (err) { return new Error(err) } )
@@ -84,6 +84,8 @@ PagePlugin.prototype.compilePage = function(page, outputFilename, compilation) {
         filename: outputFilename,
         publicPath: compilation.outputOptions.publicPath
     };
+
+    if (this.opts.outputName) outputOptions.filename = this.opts.outputName(outputFilename);
 
 	var compilerName = this.getCompilerName(page);
 	var childCompiler = compilation.createChildCompiler(compilerName, outputOptions);
@@ -116,8 +118,8 @@ PagePlugin.prototype.compilePage = function(page, outputFilename, compilation) {
 				reject('Child compilation failed:\n' + errorDetails);
 			} else {
 				resolve({
-					filename: outputFilename,
-					asset: compilation.assets[outputFilename]
+					filename: outputOptions.filename,
+					asset: compilation.assets[outputOptions.filename]
 				});
 			}
 		});
@@ -153,7 +155,7 @@ PagePlugin.prototype.execPage = function (compilation, compilationResult) {
 	}
 
 	return (typeof newSource === 'string' || typeof newSource === 'function')
-		? Promise.resolve(newSource)
+		? Promise.resolve({filename: compilationResult.filename, html: newSource} )
 		: Promise.reject('The loader "' + compilationResult.filename + '" didn\'t return html.');
 };
 
