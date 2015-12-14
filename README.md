@@ -2,7 +2,7 @@
 
 Webpack is awesome, but it is not webpages friendly. it using javascript file as the entry to handle all the staffs.This plugin give you the ability to handle your webpages separately. It copy all the webpages your want to the output path, and all assets links are replaced with the webpack compiled version.
 
-```javacript
+```javascript
 var ExtractTextPlugin = require('extract-text-webpack-plugin');
 var PagePlugin = require('page-webpack-plugin');
 var glob = require('glob');
