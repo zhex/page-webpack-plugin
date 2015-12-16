@@ -85,7 +85,7 @@ PagePlugin.prototype.compilePage = function(page, outputFilename, compilation) {
         publicPath: compilation.outputOptions.publicPath
     };
 
-    if (this.opts.outputName) outputOptions.filename = this.opts.outputName(outputFilename);
+    if (this.opts.entryName) outputOptions.filename = this.opts.entryName(outputFilename);
 
 	var compilerName = this.getCompilerName(page);
 	var childCompiler = compilation.createChildCompiler(compilerName, outputOptions);
