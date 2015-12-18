@@ -8,7 +8,7 @@ var webpack = require('webpack');
 var NodeTemplatePlugin = require('webpack/lib/node/NodeTemplatePlugin');
 var NodeTargetPlugin = require('webpack/lib/node/NodeTargetPlugin');
 var LoaderTargetPlugin = require('webpack/lib/LoaderTargetPlugin');
-var LibraryTemplatePlugin = require('webpack/lib/LibraryTemplatePlugin');
+// var LibraryTemplatePlugin = require('webpack/lib/LibraryTemplatePlugin');
 var SingleEntryPlugin = require('webpack/lib/SingleEntryPlugin');
 
 /**
@@ -93,7 +93,7 @@ PagePlugin.prototype.compilePage = function(page, outputFilename, compilation) {
 	childCompiler.apply(
 		new NodeTemplatePlugin(outputOptions),
 		new NodeTargetPlugin(),
-		new LibraryTemplatePlugin('PAGE_WEBPACK_PLUGIN_RESULT', 'var'),
+		// new LibraryTemplatePlugin('PAGE_WEBPACK_PLUGIN_RESULT', 'var'),
 		new SingleEntryPlugin(this.context, page),
 		new LoaderTargetPlugin('node')
 		// new webpack.DefinePlugin({ PAGE_WEBPACK_PLUGIN: 'true' })
@@ -138,7 +138,7 @@ PagePlugin.prototype.execPage = function (compilation, compilationResult) {
 
 	var newSource;
 	var source = compilationResult.asset.source();
-	source = source.replace('var PAGE_WEBPACK_PLUGIN_RESULT =', '');
+	// source = source.replace('var PAGE_WEBPACK_PLUGIN_RESULT =', '');
 
 	try {
 		newSource = vm.runInThisContext(source);
@@ -212,7 +212,7 @@ PagePlugin.prototype.replacePageAssets = function (html, assets) {
 	return html.replace(tagRegx, function (tag) {
 		var url = tag.match(urlRegx);
 
-		if (url[2])
+		if (url && url[2] && assets[url[2]])
 			tag = tag.replace(url[2], assets[url[2]]);
 
 		return tag;
