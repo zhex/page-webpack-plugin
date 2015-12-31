@@ -36,8 +36,8 @@ PagePlugin.prototype.apply = function(compiler) {
         	var outputFilename = file;
         	var filePath = path.join(self.opts.cwd, file);
 
-        	if (self.opts.outputName)
-        		outputFilename = self.opts.outputName(outputFilename);
+        	if (self.opts.outputPageName)
+        		outputFilename = self.opts.outputPageName(outputFilename);
 
         	return self.compilePage(filePath, outputFilename, compilation);
         });
@@ -211,14 +211,22 @@ PagePlugin.prototype.getAssets = function (compilation) {
  * @return {string}
  */
 PagePlugin.prototype.replacePageAssets = function (html, assets) {
-	var tagRegx = /<(link|script).*?(?:>|\/>)/gi;
+	var tagRegx = /<(link|script).*?(?:><\/script>|\/>)/gi;
 	var urlRegx = /(src|href)=[\'\"]?([^\'\">\s]*)[\'\"]?/i;
 
 	return html.replace(tagRegx, function (tag) {
 		var url = tag.match(urlRegx);
 
-		if (url && url[2] && assets[url[2]])
-			tag = tag.replace(url[2], assets[url[2]]);
+		if (url && url[2]) {
+			var link = url[2];
+			var allowSkip = tag.indexOf('?allowSkip') >= 0;
+
+			if (assets[link]) {
+				tag = tag.replace(link, assets[link]);
+			} else if (allowSkip) {
+				tag = '<!-- skipped: ' + link.replace('?allowSkip', '') + ' -->';
+			}
+		}
 
 		return tag;
 	});

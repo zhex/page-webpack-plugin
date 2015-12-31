@@ -46,7 +46,7 @@ module.exports = {
 		new PagePlugin({
 			cwd: __dirname + '/src',
 			files: '**/*.html',
-			outputName: function (filename) {
+			outputPageName: function (filename) {
 				return filename;
 			}, 
 			entryName: function (name) {
