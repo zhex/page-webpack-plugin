@@ -220,11 +220,12 @@ PagePlugin.prototype.replacePageAssets = function (html, assets) {
 		if (url && url[2]) {
 			var link = url[2];
 			var allowSkip = tag.indexOf('?allowSkip') >= 0;
+			var cleanedLink = link.replace('?allowSkip', '');
 
-			if (assets[link]) {
-				tag = tag.replace(link, assets[link]);
+			if (assets[cleanedLink]) {
+				tag = tag.replace(link, assets[cleanedLink]);
 			} else if (allowSkip) {
-				tag = '<!-- skipped: ' + link.replace('?allowSkip', '') + ' -->';
+				tag = '<!-- skipped: ' + cleanedLink + ' -->';
 			}
 		}
 
