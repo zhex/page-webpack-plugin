@@ -33,8 +33,13 @@ PagePlugin.prototype.apply = function(compiler) {
         var files = glob.sync(self.opts.files, { cwd: self.opts.cwd });
 
         files = files.map(function(file) {
-            var filePath = path.join(self.opts.cwd, file);
-        	return self.compilePage(filePath, file, compilation);
+        	var outputFilename = file;
+        	var filePath = path.join(self.opts.cwd, file);
+
+        	if (self.opts.outputName)
+        		outputFilename = self.opts.outputName(outputFilename);
+
+        	return self.compilePage(filePath, outputFilename, compilation);
         });
 
         Promise.all(files)

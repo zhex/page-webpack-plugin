@@ -42,9 +42,13 @@ module.exports = {
 	},
 	plugins: [
 		new ExtractTextPlugin('assets/[name].[contenthash:8].css', { allChunks: true }),
+		
 		new PagePlugin({
 			cwd: __dirname + '/src',
 			files: '**/*.html',
+			outputName: function (filename) {
+				return filename;
+			}, 
 			entryName: function (name) {
 				return name;
 			}
