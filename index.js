@@ -211,7 +211,7 @@ PagePlugin.prototype.getAssets = function (compilation) {
  * @return {string}
  */
 PagePlugin.prototype.replacePageAssets = function (html, assets) {
-	var tagRegx = /<(link|script).*?(?:><\/script>|\/>)/gi;
+	var tagRegx = /<(link|script).*?(?:>(<\/script>)?|\/>)/gi;
 	var urlRegx = /(src|href)=[\'\"]?([^\'\">\s]*)[\'\"]?/i;
 
 	return html.replace(tagRegx, function (tag) {
