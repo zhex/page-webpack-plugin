@@ -197,7 +197,7 @@ PagePlugin.prototype.getAssets = function (compilation) {
 		if (!Array.isArray(chunks)) chunks = [chunks];
 
 		chunks.forEach(function (chunk) {
-			assets[key + path.extname(chunk)] = publicPath ? (publicPath + chunk) : publicPath;
+			assets[key + path.extname(chunk)] = publicPath ? (publicPath + chunk) : chunk;
 		});
 	});
 
